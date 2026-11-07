@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>6학년 3반 탈출</title>
 <meta name="description" content="1988년 토요일 오후의 교실에 친구들과 갇혔어요. 자물쇠를 풀고 해 지기 전에 탈출하는 3D 방탈출 게임.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,9 +22,10 @@ img { max-width: 100%; }
   --f-ui: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --f-hand: "Nanum Pen Script", "Gowun Dodum", "Apple SD Gothic Neo", cursive;
 }
-html, body { height: 100%; overflow: hidden; background: var(--board-deep); color: var(--chalk); font-family: var(--f-ui); }
+html, body { height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; background: var(--board-deep); color: var(--chalk); font-family: var(--f-ui); }
 button, input { font: inherit; }
-input { box-sizing: border-box; }
+input { box-sizing: border-box; font-size: 16px; -webkit-user-select: text; user-select: text; }
+button { touch-action: manipulation; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
@@ -60,7 +61,7 @@ button { cursor: pointer; }
 #pad button.on { background: var(--brass); color: var(--ink); }
 #pad [data-dir="up"] { grid-area: 1 / 2; } #pad [data-dir="left"] { grid-area: 2 / 1; } #pad [data-dir="right"] { grid-area: 2 / 3; } #pad [data-dir="down"] { grid-area: 3 / 2; }
 
-.overlay { position: fixed; inset: 0; overflow-y: auto; padding-block: calc(env(safe-area-inset-top, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 20px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; }
+.overlay { position: fixed; inset: 0; overflow-y: auto; touch-action: pan-y; padding-block: calc(env(safe-area-inset-top, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 20px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; }
 .overlay > * { margin: auto; }
 #start { background: rgba(14, 25, 20, .8); }
 .slate { width: min(940px, 100%); display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); background: var(--board); border: 10px solid var(--wood); box-shadow: 0 18px 50px rgba(0, 0, 0, .55); }
@@ -964,6 +965,17 @@ function startGame() {
 const cleanNick = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 8);
 
 /* ---------- 입력 ---------- */
+// 화면 확대 금지: 사파리는 페이지 설정을 무시할 수 있어 제스처도 직접 막는다.
+['gesturestart', 'gesturechange', 'gestureend'].forEach((n) => document.addEventListener(n, (e) => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', (e) => { if (e.cancelable && e.touches.length > 1 && e.target !== canvas && !e.target.closest('#pad')) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (e.cancelable && now - lastTouchEnd < 350 && !e.target.closest('button, input, a')) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener('dblclick', (e) => e.preventDefault());
+document.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 addEventListener('keydown', (e) => {
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
   if (typing) { if (e.code === 'Escape' && !$('chatform').hidden) closeChat(); return; }
